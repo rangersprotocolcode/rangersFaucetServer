@@ -1,0 +1,18 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tuntunhz.tools.faucet.dao.AccountMapper">
+    <select id="getAccountInfo" parameterType="java.lang.String"
+            resultType="com.tuntunhz.tools.faucet.pojo.AccountInfo">
+          select address,gotCoinTime,gotNFTTime from account where address=#{address}
+    </select>
+
+    <insert id="updateGotCoinTime" useGeneratedKeys="true" keyProperty="id">
+        insert into account(address, gotCoinTime)values(#{address},#{gotCoinTime}) ON DUPLICATE KEY UPDATE gotCoinTime=#{gotCoinTime}
+    </insert>
+
+
+    <insert id="updateGotNFTTime" useGeneratedKeys="true" keyProperty="id">
+        insert into account(address,gotNFTTime)values(#{address},#{gotNFTTime}) ON DUPLICATE KEY UPDATE gotNFTTime=#{gotNFTTime}
+    </insert>
+</mapper>

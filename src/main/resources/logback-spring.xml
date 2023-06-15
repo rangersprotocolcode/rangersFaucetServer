@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <contextName>logback</contextName>
+    <property name="log.root" value="/home/faucet/logs"/>
+<!--        <property name="log.root" value="/Users/littlebear/home/faucet/logs"/>-->
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS}[%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="biz" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.root}/biz.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.root}/biz.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>3</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS}[%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="monitor" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.root}/monitor.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.root}/monitor.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>3</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}%msg%n</pattern>
+        </encoder>
+    </appender>
+
+
+    <appender name="db" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.root}/db.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.root}/db.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>3</maxHistory>
+            <totalSizeCap>150MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS}[%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+
+    <appender name="sdk" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.root}/sdk.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.root}/sdk.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>3</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS}[%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="console"/>
+    </root>
+
+    <logger name="com.tuntunhz.tools.faucet.util.MonitorLogger" level="info" additivity="false">
+        <appender-ref ref="monitor"/>
+    </logger>
+
+    <logger name="com.tuntunhz.tools.faucet" level="debug" additivity="false">
+        <appender-ref ref="biz"/>
+    </logger>
+
+    <logger name="com.tuntunhz.tools.faucet.dao" level="debug" additivity="false">
+        <appender-ref ref="db"/>
+    </logger>
+
+    <logger name="com.tuntunhz.wallet.sdk" level="trace" additivity="false">
+        <appender-ref ref="sdk"/>
+    </logger>
+</configuration>
