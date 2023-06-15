@@ -6,11 +6,8 @@ import com.tuntunhz.tools.faucet.dao.AssetStatisticsMapper;
 import com.tuntunhz.tools.faucet.pojo.AccountInfo;
 import com.tuntunhz.tools.faucet.pojo.ValidateAddrResult;
 import com.tuntunhz.tools.faucet.util.MonitorLogger;
-import com.tuntunhz.tools.faucet.util.RangersSDKUtil;
 import com.tuntunhz.tools.faucet.util.ResponseUtil;
 import com.tuntunhz.tools.faucet.util.TimeUtil;
-import com.tuntunhz.wallet.sdk.WalletSDK;
-import com.tuntunhz.wallet.sdk.response.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +16,23 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.websocket.Session;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static com.tuntunhz.tools.faucet.common.Constant.*;
+
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.RawTransaction;
+import org.web3j.crypto.TransactionEncoder;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.protocol.http.HttpService;
+import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
 
 @RestController
 public class CoinService {
@@ -37,7 +47,7 @@ public class CoinService {
     AssetStatisticsMapper assetStatisticsMapper;
 
     @Value("${gate.url}")
-    String gateAddress;
+    String jsonRpcAddress;
 
 
     @Value("${service.url}")
@@ -48,9 +58,9 @@ public class CoinService {
     //0x2c616a97d3d10e008f901b392986b1a65e0abbb7
 
     private String privateKey = "";
-
-
-    private BigDecimal transferRPGValue = new BigDecimal(1);
+    private Credentials credentials = Credentials.create(privateKey);
+    private String fromAddress = credentials.getAddress();
+    private BigInteger amount = Convert.toWei("1.0", Convert.Unit.ETHER).toBigInteger();
 
 
     public void requestCoin(JSONArray addressList, String id, Session webSocketSession) {
@@ -117,11 +127,40 @@ public class CoinService {
     }
 
     private boolean singleTransfer(String address) {
-        WalletSDK sdk = RangersSDKUtil.getRangersSDK(gateAddress, serviceAddress);
-        Result transferRPGResult = sdk.transferRPG(privateKey, address, transferRPGValue);
-        if (!transferRPGResult.isSuccess()) {
-            logger.info("Transfer RPG to {} failed:{}", address, transferRPGResult.getReason());
-            return false;
+        Web3j web3j = Web3j.build(new HttpService(jsonRpcAddress));
+
+        EthGetTransactionCount ethGetTransactionCount = null;
+        try {
+            ethGetTransactionCount = web3j.ethGetTransactionCount(
+                    fromAddress, DefaultBlockParameterName.LATEST).sendAsync().get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+
+        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+
+        RawTransaction rawTransaction = RawTransaction.createEtherTransaction(
+                nonce, Convert.toWei("18", Convert.Unit.GWEI).toBigInteger(),
+                Convert.toWei("45000", Convert.Unit.WEI).toBigInteger(), address, amount);
+        byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
+        String hexValue = Numeric.toHexString(signedMessage);
+
+        EthSendTransaction ethSendTransaction = null;
+        try {
+            ethSendTransaction = web3j.ethSendRawTransaction(hexValue).sendAsync().get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (null != ethSendTransaction && ethSendTransaction.hasError()) {
+            logger.info("transfer error:", ethSendTransaction.getError().getMessage());
+        } else {
+            String transactionHash = ethSendTransaction.getTransactionHash();
+            logger.info("Transfer transactionHash:" + transactionHash);
         }
 
         accountMapper.updateGotCoinTime(address, TimeUtil.getCurrentTime());
